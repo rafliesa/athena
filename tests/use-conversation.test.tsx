@@ -65,7 +65,7 @@ describe('useConversation', () => {
     const provider: Provider = {
       name: 'api',
       model: 'gpt-5.6-luna',
-      stream: vi.fn(async (_prompt, onDelta) => {
+      stream: vi.fn<Provider['stream']>(async (_prompt, onDelta) => {
         onDelta('Hello');
         onDelta(' world');
       }),
@@ -82,7 +82,7 @@ describe('useConversation', () => {
     const provider: Provider = {
       name: 'api',
       model: 'gpt-5.6-luna',
-      stream: vi.fn(async () => {
+      stream: vi.fn<Provider['stream']>(async () => {
         throw new Error('network unavailable');
       }),
     };
@@ -101,7 +101,7 @@ describe('useConversation', () => {
     const provider: Provider = {
       name: 'api',
       model: 'gpt-5.6-luna',
-      stream: vi.fn(() => pendingStream),
+      stream: vi.fn<Provider['stream']>(() => pendingStream),
     };
     const view = render(<ConcurrentConversationHarness provider={provider} />);
 
@@ -121,7 +121,7 @@ describe('useConversation', () => {
     const provider: Provider = {
       name: 'api',
       model: 'gpt-5.6-luna',
-      stream: vi.fn(async (_prompt, onDelta) => {
+      stream: vi.fn<Provider['stream']>(async (_prompt, onDelta) => {
         onDelta('discarded response');
       }),
     };
