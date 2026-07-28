@@ -5,9 +5,9 @@ export class SseDecoder {
     this.buffer += chunk;
     const data: string[] = [];
 
-    while (true) {
-      const boundary = this.buffer.match(/\r?\n\r?\n/);
-      if (!boundary || boundary.index === undefined) break;
+    for (;;) {
+      const boundary = /\r?\n\r?\n/.exec(this.buffer);
+      if (!boundary) break;
 
       const block = this.buffer.slice(0, boundary.index);
       this.buffer = this.buffer.slice(boundary.index + boundary[0].length);
