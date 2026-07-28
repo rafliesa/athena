@@ -51,7 +51,7 @@ export class OpenAIProvider implements Provider {
       const reader = response.body.getReader();
       let receivedText = false;
 
-      while (true) {
+      for (;;) {
         const { value, done } = await reader.read();
         const payloads = sse.push(decoder.decode(value, { stream: !done }));
         if (done) payloads.push(...sse.finish());
@@ -75,7 +75,9 @@ export class OpenAIProvider implements Provider {
       if (!receivedText) onDelta(EMPTY_RESPONSE);
     } catch (error) {
       if (controller.signal.aborted) {
-        throw new Error(`OpenAI request timed out after ${this.timeoutMs}ms.`);
+        throw new Error(`OpenAI request timed out after ${this.timeoutMs}ms.`, {
+          cause: error,
+        });
       }
       throw error;
     } finally {
