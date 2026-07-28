@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Box } from 'ink';
+import { CommandMenu } from './components/CommandMenu.js';
 import { Footer } from './components/Footer.js';
 import { MessageView } from './components/MessageView.js';
 import { Prompt } from './components/Prompt.js';
@@ -12,7 +13,11 @@ const RESPONSE = '...';
 
 export function App() {
   const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
-  const prompt = usePrompt((value) => {
+  const {
+    value: prompt,
+    matches,
+    selectedIndex,
+  } = usePrompt((value) => {
     setMessages((current) => [
       ...current,
       { role: 'user', text: value },
@@ -28,6 +33,7 @@ export function App() {
         ))}
       </Box>
       <Prompt value={prompt} />
+      <CommandMenu commands={prompt.startsWith('/') ? matches : []} selectedIndex={selectedIndex} />
       <Footer />
     </Box>
   );
