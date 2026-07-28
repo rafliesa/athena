@@ -47,7 +47,12 @@ describe('OpenAIProvider', () => {
     expect(init?.method).toBe('POST');
     expect(new Headers(init?.headers).get('authorization')).toBe('Bearer secret-key');
     expect(init?.signal).toBeInstanceOf(AbortSignal);
-    expect(JSON.parse(String(init?.body))).toEqual({
+    const requestBody = init?.body;
+    expect(typeof requestBody).toBe('string');
+    if (typeof requestBody !== 'string') {
+      throw new TypeError('Expected the OpenAI request body to be JSON.');
+    }
+    expect(JSON.parse(requestBody)).toEqual({
       model: 'gpt-5.6-luna',
       input: 'Hi',
       stream: true,
