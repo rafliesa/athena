@@ -54,6 +54,7 @@ describe('useStoredConfig', () => {
 
   it('normalizes non-Error loader failures', async () => {
     const loader = vi.fn(async () => {
+      // eslint-disable-next-line @typescript-eslint/only-throw-error -- verifies normalization of unknown rejections
       throw 'disk unavailable';
     });
     const view = render(<StoredConfigHarness loader={loader} />);
