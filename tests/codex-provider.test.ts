@@ -8,7 +8,7 @@ type Request = {
 };
 
 class FakeCodexClient implements CodexClient {
-  readonly initialize = vi.fn(async () => undefined);
+  readonly initialize = vi.fn<CodexClient['initialize']>(async () => undefined);
   readonly dispose = vi.fn();
   readonly requests: Request[] = [];
   threadResult: unknown = { thread: { id: 'thread-1' } };
