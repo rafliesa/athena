@@ -1,40 +1,20 @@
-import React, { useState } from 'react';
-import { Box } from 'ink';
-import { CommandMenu } from './components/CommandMenu.js';
-import { Footer } from './components/Footer.js';
-import { MessageView } from './components/MessageView.js';
-import { Prompt } from './components/Prompt.js';
-import { usePrompt } from './hooks/usePrompt.js';
-import type { Message } from './types.js';
-
-const INITIAL_MESSAGES: Message[] = [{ role: 'assistant', text: 'Hello, World!' }];
-
-const RESPONSE = '...';
+import React from 'react';
+import { Text } from 'ink';
+import { Spinner } from './components/Spinner.js';
+import { useStoredConfig } from './config/useStoredConfig.js';
+import { AuthScreen } from './screens/AuthScreen.js';
+import { ChatScreen } from './screens/ChatScreen.js';
 
 export function App() {
-  const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
-  const {
-    value: prompt,
-    matches,
-    selectedIndex,
-  } = usePrompt((value) => {
-    setMessages((current) => [
-      ...current,
-      { role: 'user', text: value },
-      { role: 'assistant', text: RESPONSE },
-    ]);
-  });
+  const { state, setConfig } = useStoredConfig();
+
+  if (state.status === 'loading') return <Spinner label="Loading Athena..." />;
+  if (state.status === 'error') {
+    return <Text color="red">Failed to load Athena config: {state.error.message}</Text>;
+  }
+  if (state.config === null) return <AuthScreen onAuthenticated={setConfig} />;
 
   return (
-    <Box flexDirection="column" paddingX={2} paddingY={1} width="100%">
-      <Box flexDirection="column" marginBottom={1}>
-        {messages.map((message, index) => (
-          <MessageView key={`${message.role}-${index}`} message={message} />
-        ))}
-      </Box>
-      <Prompt value={prompt} />
-      <CommandMenu commands={prompt.startsWith('/') ? matches : []} selectedIndex={selectedIndex} />
-      <Footer />
-    </Box>
+    <ChatScreen config={state.config} onConfigChange={setConfig} onLogout={() => setConfig(null)} />
   );
 }
