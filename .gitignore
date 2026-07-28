@@ -1,6 +1,10 @@
 node_modules/
 dist/
+coverage/
+.husky/_/
 *.log
 .DS_Store
 .env
+.env.*
+!.env.example
 human.md
