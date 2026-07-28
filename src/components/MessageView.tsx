@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Text } from 'ink';
-import type { Message } from '../types.js';
+import type { Message } from '../domain/messages.js';
 
 export function MessageView({ message }: { message: Message }) {
   const isUser = message.role === 'user';
@@ -10,7 +10,7 @@ export function MessageView({ message }: { message: Message }) {
       <Text color={isUser ? 'yellow' : 'cyan'} bold>
         {isUser ? 'you' : 'athena'}
       </Text>
-      <Box borderStyle={'round'} borderColor={isUser ? 'yellow' : 'cyan'}>
+      <Box borderStyle="round" borderColor={isUser ? 'yellow' : 'cyan'} paddingX={1}>
         <Text>{message.text}</Text>
       </Box>
     </Box>
