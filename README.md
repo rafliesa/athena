@@ -20,13 +20,16 @@ Athena is intended to provide a lightweight foundation for building and testing 
 - [Ink](https://github.com/vadimdemedes/ink) — terminal UI built with React;
 - React — UI components;
 - TypeScript — type-safe application development;
-- Prettier — code formatting and consistency.
+- ESLint and Prettier — type-aware linting and consistent formatting;
+- Vitest — unit, integration, and coverage testing.
 
 ## Getting Started
 
-Make sure Node.js and npm are installed, then run:
+Athena uses Node.js 24 LTS and npm 11 or newer. If you use `nvm`, the repository includes an
+`.nvmrc` file:
 
 ```bash
+nvm use
 npm install
 npm run dev
 ```
@@ -36,9 +39,14 @@ Available commands:
 ```bash
 npm run build          # Compile TypeScript into dist/
 npm run start          # Run the compiled application
+npm run lint           # Run type-aware ESLint checks
+npm run lint:fix       # Apply safe ESLint fixes
 npm run format         # Format the source code
 npm run format:check   # Check formatting without changing files
+npm run typecheck      # Type-check without emitting files
 npm test               # Run the test suite
+npm run test:coverage  # Run tests with enforced coverage thresholds
+npm run check          # Run all local quality gates
 ```
 
 ## Providers
@@ -103,13 +111,22 @@ Planned areas of development include:
 
 ## Contributing
 
-Contributions and feedback are welcome while the project is in the WIP stage. Before submitting changes, make sure the following checks pass:
+Contributions and feedback are welcome while the project is in the WIP stage. Run the complete
+local quality gate before submitting changes:
 
 ```bash
-npm run format:check
-npm run build
-npm test
+npm run check
 ```
+
+Git hooks are installed automatically by `npm install`:
+
+- `pre-commit` formats and lints staged files through lint-staged;
+- `commit-msg` enforces Conventional Commits such as `feat: add tool execution`;
+- `pre-push` runs the complete local quality gate.
+
+GitHub Actions repeats formatting, linting, type-checking, coverage tests, builds, and pull-request
+commit validation. Current global coverage minimums are 85% for statements, functions, and lines,
+and 75% for branches.
 
 ## License
 
