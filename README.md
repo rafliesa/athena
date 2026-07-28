@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="./athena.png" alt="Athena logo" width="256" />
+</p>
+
 # Athena
 
 Athena is a **lightweight agent harness** for experimenting with coding-agent workflows in the terminal. It is designed with a simple, modular structure so the UI, prompt handling, harness engine, and evaluator can evolve independently.
@@ -82,7 +86,7 @@ src/
 ├── domain/                         # Models, commands, messages, and core types
 ├── providers/
 │   ├── provider.ts                 # Provider contract
-│   ├── createProvider.ts           # Provider factory
+│   ├── createProvider.ts           # Provider faOctory
 │   ├── codex/
 │   │   ├── AppServerClient.ts      # Codex JSON-RPC transport
 │   │   └── CodexProvider.ts        # Codex streaming adapter
