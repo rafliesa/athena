@@ -103,7 +103,6 @@ export function useAuthFlow(
         return;
       }
 
-      if (step !== 'api-key') return;
       if (key.escape) {
         setStep('provider');
         setError('');
