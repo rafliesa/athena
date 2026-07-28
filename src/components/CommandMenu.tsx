@@ -1,14 +1,13 @@
 import React from 'react';
 import { Box, Text } from 'ink';
-import type { Command } from '../commands.js';
+import type { Command } from '../domain/commands.js';
 
-export function CommandMenu({
-  commands,
-  selectedIndex = 0,
-}: {
+type CommandMenuProps = {
   commands: Command[];
   selectedIndex?: number;
-}) {
+};
+
+export function CommandMenu({ commands, selectedIndex = 0 }: CommandMenuProps) {
   if (commands.length === 0) return null;
 
   return (
