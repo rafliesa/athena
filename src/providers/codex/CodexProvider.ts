@@ -27,9 +27,9 @@ export class CodexProvider implements Provider {
 
   async stream(prompt: string, onDelta: TextDeltaHandler): Promise<void> {
     const client = this.createClient(process.cwd());
-    let receivedText = false;
-    let cleanupCompletion: () => void = () => {};
-    let timeout: ReturnType<typeof setTimeout> | undefined;
+    const streamState = { receivedText: false };
+    let cleanupCompletion: () => void = () => undefined;
+    let cancelTimeout: () => void = () => undefined;
 
     try {
       const operation = (async () => {
@@ -45,9 +45,9 @@ export class CodexProvider implements Provider {
           throw new Error('Codex did not return a thread ID.');
         }
 
-        let removeDeltaHandler: () => void = () => {};
-        let removeCompletedHandler: () => void = () => {};
-        let removeCloseHandler: () => void = () => {};
+        let removeDeltaHandler: () => void = () => undefined;
+        let removeCompletedHandler: () => void = () => undefined;
+        let removeCloseHandler: () => void = () => undefined;
         cleanupCompletion = () => {
           removeDeltaHandler();
           removeCompletedHandler();
@@ -66,7 +66,7 @@ export class CodexProvider implements Provider {
           removeDeltaHandler = client.on('item/agentMessage/delta', (params) => {
             const delta = params.delta;
             if (typeof delta !== 'string') return;
-            receivedText = true;
+            streamState.receivedText = true;
             onDelta(delta);
           });
           removeCompletedHandler = client.on('turn/completed', (params) => {
@@ -89,18 +89,19 @@ export class CodexProvider implements Provider {
         });
         await completed;
 
-        if (!receivedText) onDelta(EMPTY_RESPONSE);
+        if (!streamState.receivedText) onDelta(EMPTY_RESPONSE);
       })();
 
       const timedOut = new Promise<never>((_, reject) => {
-        timeout = setTimeout(() => {
+        const timeout = setTimeout(() => {
           reject(new Error(`Codex request timed out after ${this.timeoutMs}ms.`));
         }, this.timeoutMs);
+        cancelTimeout = () => clearTimeout(timeout);
       });
 
       await Promise.race([operation, timedOut]);
     } finally {
-      if (timeout) clearTimeout(timeout);
+      cancelTimeout();
       cleanupCompletion();
       client.dispose();
     }
