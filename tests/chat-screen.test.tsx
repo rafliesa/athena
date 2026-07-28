@@ -23,7 +23,9 @@ function createHarness(overrides?: {
   const provider: Provider = overrides?.provider ?? {
     name: 'api',
     model: 'gpt-5.6-luna',
-    stream: vi.fn(async (_prompt, onDelta) => onDelta('provider answer')),
+    stream: vi.fn<Provider['stream']>(async (_prompt, onDelta) => {
+      onDelta('provider answer');
+    }),
   };
   const dependencies: ChatScreenDependencies = {
     createProvider: vi.fn(() => provider),
