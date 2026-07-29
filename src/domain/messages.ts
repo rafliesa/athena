@@ -4,6 +4,7 @@ export type Message = {
   id: number;
   role: MessageRole;
   text: string;
+  variant?: 'welcome';
 };
 
 export const WELCOME_MESSAGE = 'Hello! I am Athena.\nWhat would you like to build today?';

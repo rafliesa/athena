@@ -3,6 +3,7 @@ import { Box, Text } from 'ink';
 import type { Message } from '../domain/messages.js';
 import { Markdown } from './Markdown.js';
 import { Spinner } from './Spinner.js';
+import { AthenaLogo } from './AthenaLogo.js';
 
 type MessageViewProps = {
   message: Message;
@@ -18,7 +19,18 @@ export const MessageView = memo(function MessageView({ message, thinkingLabel }:
         {isUser ? 'you' : 'athena'}
       </Text>
       <Box borderStyle="round" borderColor={isUser ? 'yellow' : 'cyan'} paddingX={1}>
-        {thinkingLabel ? <Spinner label={thinkingLabel} /> : <Markdown>{message.text}</Markdown>}
+        {thinkingLabel ? (
+          <Spinner label={thinkingLabel} />
+        ) : message.variant === 'welcome' ? (
+          <Box alignItems="center">
+            <AthenaLogo />
+            <Box flexDirection="column" marginLeft={1}>
+              <Markdown>{message.text}</Markdown>
+            </Box>
+          </Box>
+        ) : (
+          <Markdown>{message.text}</Markdown>
+        )}
       </Box>
     </Box>
   );

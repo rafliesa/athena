@@ -8,7 +8,7 @@ export function useConversation(provider: Provider) {
   const nextId = useRef(1);
   const streaming = useRef(false);
   const [messages, setMessages] = useState<Message[]>([
-    { id: 0, role: 'assistant', text: WELCOME_MESSAGE },
+    { id: 0, role: 'assistant', text: WELCOME_MESSAGE, variant: 'welcome' },
   ]);
   const [isStreaming, setIsStreaming] = useState(false);
 
@@ -19,7 +19,7 @@ export function useConversation(provider: Provider) {
 
   const clearMessages = useCallback(() => {
     const id = nextId.current++;
-    setMessages([{ id, role: 'assistant', text: WELCOME_MESSAGE }]);
+    setMessages([{ id, role: 'assistant', text: WELCOME_MESSAGE, variant: 'welcome' }]);
   }, []);
 
   const sendMessage = useCallback(
