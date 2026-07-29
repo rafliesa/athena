@@ -38,7 +38,10 @@ describe('OpenAIProvider', () => {
     );
     const onDelta = vi.fn();
 
-    await new OpenAIProvider('secret-key', 'gpt-5.6-luna').stream('Hi', onDelta);
+    await new OpenAIProvider('secret-key', 'gpt-5.6-luna', undefined, 'Be concise.').stream(
+      'Hi',
+      onDelta,
+    );
 
     expect(onDelta.mock.calls).toEqual([['Hello'], [' world']]);
     expect(fetchMock).toHaveBeenCalledOnce();
@@ -54,6 +57,7 @@ describe('OpenAIProvider', () => {
     }
     expect(JSON.parse(requestBody)).toEqual({
       model: 'gpt-5.6-luna',
+      instructions: 'Be concise.',
       input: 'Hi',
       stream: true,
     });

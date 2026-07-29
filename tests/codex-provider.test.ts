@@ -70,7 +70,10 @@ describe('CodexProvider', () => {
     };
     const onDelta = vi.fn();
 
-    await new CodexProvider('gpt-5.6-luna', () => client).stream('Hi', onDelta);
+    await new CodexProvider('gpt-5.6-luna', () => client, undefined, 'Be concise.').stream(
+      'Hi',
+      onDelta,
+    );
 
     expect(client.initialize).toHaveBeenCalledOnce();
     expect(client.requests).toEqual([
@@ -78,6 +81,7 @@ describe('CodexProvider', () => {
         method: 'thread/start',
         params: {
           model: 'gpt-5.6-luna',
+          developerInstructions: 'Be concise.',
           cwd: process.cwd(),
           sandbox: 'read-only',
           approvalPolicy: 'never',

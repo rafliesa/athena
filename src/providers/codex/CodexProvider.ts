@@ -1,3 +1,4 @@
+import { DEFAULT_SYSTEM_PROMPT } from '../../domain/config.js';
 import type { ModelId } from '../../domain/models.js';
 import type { Provider, TextDeltaHandler } from '../provider.js';
 import { AppServerClient, type CodexClientFactory } from './AppServerClient.js';
@@ -23,6 +24,7 @@ export class CodexProvider implements Provider {
     readonly model: ModelId,
     private readonly createClient: CodexClientFactory = (cwd) => new AppServerClient(cwd),
     private readonly timeoutMs = DEFAULT_TIMEOUT_MS,
+    private readonly systemPrompt = DEFAULT_SYSTEM_PROMPT,
   ) {}
 
   async stream(prompt: string, onDelta: TextDeltaHandler): Promise<void> {
@@ -36,6 +38,7 @@ export class CodexProvider implements Provider {
         await client.initialize();
         const { thread } = await client.request<ThreadStartResult>('thread/start', {
           model: this.model,
+          developerInstructions: this.systemPrompt,
           cwd: process.cwd(),
           sandbox: 'read-only',
           approvalPolicy: 'never',

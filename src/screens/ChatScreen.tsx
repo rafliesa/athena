@@ -4,7 +4,7 @@ import { useConversation } from '../chat/useConversation.js';
 import { saveConfig } from '../config/store.js';
 import { createCommandExecutor } from '../commands/executeCommand.js';
 import { isCommandName } from '../domain/commands.js';
-import type { AthenaConfig } from '../domain/config.js';
+import { DEFAULT_SYSTEM_PROMPT, type AthenaConfig } from '../domain/config.js';
 import type { ModelId } from '../domain/models.js';
 import { ChatControls } from '../components/ChatControls.js';
 import { ConversationView } from '../components/ConversationView.js';
@@ -41,7 +41,7 @@ export function ChatScreen({
   const provider = useMemo(() => dependencies.createProvider(config), [config, dependencies]);
   const { messages, isStreaming, addAssistantMessage, clearMessages, sendMessage } =
     useConversation(provider);
-  const [activeMenu, setActiveMenu] = useState<'model' | null>(null);
+  const [activeMenu, setActiveMenu] = useState<'model' | 'systemPrompt' | null>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const isBusy = isStreaming || isLoggingOut;
 
@@ -53,6 +53,7 @@ export function ChatScreen({
         clearMessages,
         addAssistantMessage,
         openModelMenu: () => setActiveMenu('model'),
+        openSystemPromptEditor: () => setActiveMenu('systemPrompt'),
         setLoggingOut: setIsLoggingOut,
         onLogout,
         exit,
@@ -91,17 +92,36 @@ export function ChatScreen({
     [addAssistantMessage, config, dependencies, onConfigChange],
   );
 
+  const saveSystemPrompt = useCallback(
+    async (systemPrompt: string) => {
+      try {
+        const nextConfig: AthenaConfig = { ...config, systemPrompt };
+        await dependencies.saveConfig(nextConfig);
+        onConfigChange(nextConfig);
+        setActiveMenu(null);
+        addAssistantMessage('System prompt updated.');
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        addAssistantMessage(`Failed to update system prompt: ${message}`);
+      }
+    },
+    [addAssistantMessage, config, dependencies, onConfigChange],
+  );
+
   return (
     <Box flexDirection="column" paddingX={2} paddingY={1} width="100%">
       <ConversationView messages={messages} />
       <ChatControls
         activeMenu={activeMenu}
         prompt={prompt.value}
+        systemPrompt={config.systemPrompt ?? DEFAULT_SYSTEM_PROMPT}
         suggestions={prompt.suggestions}
         selectedIndex={prompt.selectedIndex}
         currentModel={config.model}
         onModelSelect={(model) => void selectModel(model)}
         onModelCancel={() => setActiveMenu(null)}
+        onSystemPromptSave={(value) => void saveSystemPrompt(value)}
+        onSystemPromptCancel={() => setActiveMenu(null)}
       />
       {isBusy && (
         <Spinner label={isLoggingOut ? 'Signing out...' : `Thinking with ${provider.model}...`} />

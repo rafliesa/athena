@@ -91,6 +91,25 @@ describe('ChatScreen', () => {
     expect(view.lastFrame()).toContain('Model changed to gpt-5.6-terra.');
   });
 
+  it('opens the system prompt editor and persists a replacement', async () => {
+    const { view, dependencies, onConfigChange } = createHarness();
+
+    await sendInput(view, '/systemprompt');
+    await sendInput(view, '\r');
+    await vi.waitFor(() => expect(view.lastFrame()).toContain('Edit system prompt'));
+    await sendInput(view, '\u0001');
+    await sendInput(view, 'Be concise.');
+    await sendInput(view, '\r');
+
+    const expectedConfig: AthenaConfig = {
+      ...CONFIG,
+      systemPrompt: 'Be concise.',
+    };
+    await vi.waitFor(() => expect(onConfigChange).toHaveBeenCalledWith(expectedConfig));
+    expect(dependencies.saveConfig).toHaveBeenCalledWith(expectedConfig);
+    expect(view.lastFrame()).toContain('System prompt updated.');
+  });
+
   it('keeps the model menu open and reports persistence failures', async () => {
     const saveConfig = vi.fn(async () => {
       throw new Error('config is read-only');

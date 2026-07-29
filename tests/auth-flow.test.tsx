@@ -2,7 +2,7 @@ import { Text } from 'ink';
 import { cleanup, render } from 'ink-testing-library';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useAuthFlow, type AuthFlowDependencies } from '../src/hooks/useAuthFlow.js';
-import type { AthenaConfig } from '../src/domain/config.js';
+import { DEFAULT_SYSTEM_PROMPT, type AthenaConfig } from '../src/domain/config.js';
 
 async function sendInput(view: ReturnType<typeof render>, input: string): Promise<void> {
   await new Promise<void>((resolve) => setImmediate(resolve));
@@ -56,11 +56,13 @@ describe('useAuthFlow', () => {
       provider: 'api',
       model: 'gpt-5.6-luna',
       apiKey: 'sk-secret',
+      systemPrompt: DEFAULT_SYSTEM_PROMPT,
     });
     expect(onAuthenticated).toHaveBeenCalledWith({
       provider: 'api',
       model: 'gpt-5.6-luna',
       apiKey: 'sk-secret',
+      systemPrompt: DEFAULT_SYSTEM_PROMPT,
     });
   });
 
@@ -97,6 +99,7 @@ describe('useAuthFlow', () => {
     expect(dependencies.saveConfig).toHaveBeenCalledWith({
       provider: 'codex',
       model: 'gpt-5.6-luna',
+      systemPrompt: DEFAULT_SYSTEM_PROMPT,
     });
   });
 

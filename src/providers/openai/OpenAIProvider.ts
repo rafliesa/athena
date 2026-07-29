@@ -1,3 +1,4 @@
+import { DEFAULT_SYSTEM_PROMPT } from '../../domain/config.js';
 import type { ModelId } from '../../domain/models.js';
 import type { Provider, TextDeltaHandler } from '../provider.js';
 import { SseDecoder } from './sse.js';
@@ -18,6 +19,7 @@ export class OpenAIProvider implements Provider {
     private readonly apiKey: string,
     readonly model: ModelId,
     private readonly timeoutMs = DEFAULT_TIMEOUT_MS,
+    private readonly systemPrompt = DEFAULT_SYSTEM_PROMPT,
   ) {}
 
   async stream(prompt: string, onDelta: TextDeltaHandler): Promise<void> {
@@ -33,6 +35,7 @@ export class OpenAIProvider implements Provider {
         },
         body: JSON.stringify({
           model: this.model,
+          instructions: this.systemPrompt,
           input: prompt,
           stream: true,
         }),

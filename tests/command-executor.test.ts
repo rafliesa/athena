@@ -8,6 +8,7 @@ function createContext() {
     clearMessages: vi.fn(),
     addAssistantMessage: vi.fn(),
     openModelMenu: vi.fn(),
+    openSystemPromptEditor: vi.fn(),
     setLoggingOut: vi.fn(),
     onLogout: vi.fn(),
     exit: vi.fn(),
@@ -28,12 +29,14 @@ describe('command executor', () => {
 
     await execute('/clear');
     await execute('/model');
+    await execute('/systemprompt');
     await execute('/status');
     await execute('/help');
     await execute('/exit');
 
     expect(context.clearMessages).toHaveBeenCalledOnce();
     expect(context.openModelMenu).toHaveBeenCalledOnce();
+    expect(context.openSystemPromptEditor).toHaveBeenCalledOnce();
     expect(context.addAssistantMessage).toHaveBeenCalledTimes(2);
     expect(context.exit).toHaveBeenCalledOnce();
   });

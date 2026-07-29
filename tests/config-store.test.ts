@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createConfigStore } from '../src/config/store.js';
+import { DEFAULT_SYSTEM_PROMPT } from '../src/domain/config.js';
 
 const temporaryDirectories: string[] = [];
 
@@ -57,7 +58,10 @@ describe('config store', () => {
     expect(await readFile(configPath, 'utf8')).toBe(`${JSON.stringify(config, null, 2)}\n`);
     expect((await stat(configPath)).mode & 0o777).toBe(0o600);
     expect((await stat(configDirectory)).mode & 0o777).toBe(0o700);
-    await expect(store.load()).resolves.toEqual(config);
+    await expect(store.load()).resolves.toEqual({
+      ...config,
+      systemPrompt: DEFAULT_SYSTEM_PROMPT,
+    });
   });
 
   it('repairs overly broad permissions on an existing directory and file', async () => {

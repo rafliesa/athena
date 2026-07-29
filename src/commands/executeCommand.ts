@@ -9,6 +9,7 @@ export type CommandContext = {
   clearMessages: () => void;
   addAssistantMessage: (message: string) => void;
   openModelMenu: () => void;
+  openSystemPromptEditor: () => void;
   setLoggingOut: (value: boolean) => void;
   onLogout: () => void;
   exit: () => void;
@@ -32,6 +33,7 @@ const DEFAULT_DEPENDENCIES: CommandDependencies = {
 const HANDLERS: Record<CommandName, CommandHandler> = {
   '/clear': ({ clearMessages }) => clearMessages(),
   '/model': ({ openModelMenu }) => openModelMenu(),
+  '/systemprompt': ({ openSystemPromptEditor }) => openSystemPromptEditor(),
   '/status': ({ addAssistantMessage, provider, model }) =>
     addAssistantMessage(`Provider: ${provider}\nModel: ${model}\nStatus: ready`),
   '/help': ({ addAssistantMessage }) => addAssistantMessage(formatCommandHelp()),
