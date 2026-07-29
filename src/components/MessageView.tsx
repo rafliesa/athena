@@ -13,12 +13,22 @@ type MessageViewProps = {
 export const MessageView = memo(function MessageView({ message, thinkingLabel }: MessageViewProps) {
   const isUser = message.role === 'user';
 
+  if (isUser) {
+    return (
+      <Box flexShrink={0} marginBottom={1}>
+        <Text color="white" backgroundColor="#303030">
+          {formatUserMessage(message.text)}
+        </Text>
+      </Box>
+    );
+  }
+
   return (
     <Box flexDirection="column" flexShrink={0} marginBottom={1}>
-      <Text color={isUser ? 'yellow' : 'cyan'} bold>
-        {isUser ? 'you' : 'athena'}
+      <Text color="cyan" bold>
+        athena
       </Text>
-      <Box borderStyle="round" borderColor={isUser ? 'yellow' : 'cyan'} paddingX={1}>
+      <Box paddingLeft={1}>
         {thinkingLabel ? (
           <Spinner label={thinkingLabel} />
         ) : message.variant === 'welcome' ? (
@@ -35,3 +45,10 @@ export const MessageView = memo(function MessageView({ message, thinkingLabel }:
     </Box>
   );
 });
+
+function formatUserMessage(text: string): string {
+  return text
+    .split('\n')
+    .map((line, index) => ` ${index === 0 ? '›' : ' '} ${line} `)
+    .join('\n');
+}

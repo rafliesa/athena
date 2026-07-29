@@ -48,7 +48,7 @@ function createHarness(overrides?: {
 afterEach(cleanup);
 
 describe('ChatScreen', () => {
-  it('renders the thinking indicator inside the pending assistant bubble', async () => {
+  it('renders the thinking indicator under the borderless Athena label', async () => {
     let finishStreaming: (() => void) | undefined;
     const provider: Provider = {
       name: 'api',
@@ -67,11 +67,11 @@ describe('ChatScreen', () => {
 
     await vi.waitFor(() => {
       const frame = view.lastFrame() ?? '';
-      expect(frame).toContain('athena');
       const thinkingIndex = frame.indexOf('Thinking with gpt-5.6-luna...');
       expect(thinkingIndex).toBeGreaterThan(-1);
-      expect(frame.lastIndexOf('╭', thinkingIndex)).toBeGreaterThan(-1);
-      expect(frame.indexOf('╰', thinkingIndex)).toBeGreaterThan(thinkingIndex);
+      const athenaIndex = frame.lastIndexOf('athena', thinkingIndex);
+      expect(athenaIndex).toBeGreaterThan(-1);
+      expect(frame.slice(athenaIndex, thinkingIndex)).not.toMatch(/[╭╮╰╯│]/);
     });
 
     finishStreaming?.();
