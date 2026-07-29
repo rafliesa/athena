@@ -78,6 +78,35 @@ describe('useConversation', () => {
     expect(provider.stream).toHaveBeenCalledWith('hello', expect.any(Function));
   });
 
+  it('batches rapid deltas into a single render interval', async () => {
+    let emitDelta: ((delta: string) => void) | undefined;
+    let finishStreaming: (() => void) | undefined;
+    const provider: Provider = {
+      name: 'api',
+      model: 'gpt-5.6-luna',
+      stream: vi.fn<Provider['stream']>(
+        (_prompt, onDelta) =>
+          new Promise<void>((resolve) => {
+            emitDelta = onDelta;
+            finishStreaming = resolve;
+          }),
+      ),
+    };
+    const view = render(<ConversationHarness provider={provider} />);
+
+    await vi.waitFor(() => expect(emitDelta).toBeTypeOf('function'));
+    const frameCount = view.frames.length;
+    emitDelta?.('one');
+    emitDelta?.(' two');
+    emitDelta?.(' three');
+
+    expect(view.frames).toHaveLength(frameCount);
+    await vi.waitFor(() => expect(view.lastFrame()).toContain('one two three'));
+    expect(view.frames.length - frameCount).toBeLessThanOrEqual(2);
+
+    finishStreaming?.();
+  });
+
   it('renders provider failures in the pending assistant message', async () => {
     const provider: Provider = {
       name: 'api',

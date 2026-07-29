@@ -11,7 +11,7 @@ type FooterProps = {
 export function Footer({ provider, model }: FooterProps) {
   return (
     <Box justifyContent="space-between" marginTop={1}>
-      <Text dimColor>↑↓ select · Tab complete · Enter send · Ctrl+C exit</Text>
+      <Text dimColor>PgUp/PgDn scroll · Ctrl+E latest · Enter send · Ctrl+C exit</Text>
       <Text dimColor>
         ⌁ {provider} · {model}
       </Text>

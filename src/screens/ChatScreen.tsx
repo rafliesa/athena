@@ -13,6 +13,7 @@ import { Spinner } from '../components/Spinner.js';
 import { createProvider as createDefaultProvider } from '../providers/createProvider.js';
 import type { Provider } from '../providers/provider.js';
 import { usePromptInput } from '../hooks/usePromptInput.js';
+import { useTerminalRows } from '../hooks/useTerminalRows.js';
 
 type ChatScreenProps = {
   config: AthenaConfig;
@@ -38,6 +39,7 @@ export function ChatScreen({
   dependencies = DEFAULT_DEPENDENCIES,
 }: ChatScreenProps) {
   const { exit } = useApp();
+  const terminalRows = useTerminalRows();
   const provider = useMemo(() => dependencies.createProvider(config), [config, dependencies]);
   const { messages, isStreaming, addAssistantMessage, clearMessages, sendMessage } =
     useConversation(provider);
@@ -109,10 +111,18 @@ export function ChatScreen({
   );
 
   return (
-    <Box flexDirection="column" paddingX={2} paddingY={1} width="100%">
+    <Box
+      flexDirection="column"
+      paddingX={2}
+      paddingY={1}
+      width="100%"
+      height={Math.max(terminalRows - 1, 1)}
+      overflow="hidden"
+    >
       <ConversationView
         messages={messages}
         thinkingLabel={isStreaming ? `Thinking with ${provider.model}...` : undefined}
+        viewportRows={terminalRows}
       />
       <ChatControls
         activeMenu={activeMenu}

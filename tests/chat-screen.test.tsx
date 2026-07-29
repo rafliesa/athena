@@ -89,6 +89,47 @@ describe('ChatScreen', () => {
     });
   });
 
+  it('keeps the latest agent output and controls visible when the conversation exceeds the viewport', async () => {
+    const provider: Provider = {
+      name: 'api',
+      model: 'gpt-5.6-luna',
+      stream: vi.fn<Provider['stream']>(async (_prompt, onDelta) => {
+        onDelta(Array.from({ length: 40 }, (_, index) => `line ${index}`).join('\n'));
+      }),
+    };
+    const { view } = createHarness({ provider });
+
+    await sendInput(view, 'long response');
+    await sendInput(view, '\r');
+
+    await vi.waitFor(() => expect(view.lastFrame()).toContain('line 39'));
+    expect(view.lastFrame()).not.toContain('line 0');
+    expect(view.lastFrame()).toContain('Tell me to do something...');
+    expect(view.lastFrame()).toContain('api · gpt-5.6-luna');
+  });
+
+  it('scrolls through conversation history and can return to the latest output', async () => {
+    const provider: Provider = {
+      name: 'api',
+      model: 'gpt-5.6-luna',
+      stream: vi.fn<Provider['stream']>(async (_prompt, onDelta) => {
+        onDelta(Array.from({ length: 40 }, (_, index) => `line ${index}`).join('\n'));
+      }),
+    };
+    const { view } = createHarness({ provider });
+
+    await sendInput(view, 'long response');
+    await sendInput(view, '\r');
+    await vi.waitFor(() => expect(view.lastFrame()).toContain('line 39'));
+
+    await sendInput(view, '\u001B[5~');
+    await vi.waitFor(() => expect(view.lastFrame()).not.toContain('line 39'));
+    expect(view.lastFrame()).toContain('line 20');
+
+    await sendInput(view, '\u0005');
+    await vi.waitFor(() => expect(view.lastFrame()).toContain('line 39'));
+  });
+
   it('renders unknown slash commands without calling the provider', async () => {
     const { view, provider } = createHarness();
 

@@ -2,6 +2,8 @@ import { useCallback, useRef, useState } from 'react';
 import { updateMessage, WELCOME_MESSAGE, type Message } from '../domain/messages.js';
 import type { Provider } from '../providers/provider.js';
 
+const STREAM_RENDER_INTERVAL_MS = 32;
+
 export function useConversation(provider: Provider) {
   const nextId = useRef(1);
   const streaming = useRef(false);
@@ -31,16 +33,34 @@ export function useConversation(provider: Provider) {
       setMessages((messages) => [...messages, userMessage, responseMessage]);
       setIsStreaming(true);
 
+      let bufferedText = '';
+      let renderTimer: ReturnType<typeof setTimeout> | undefined;
+      const flushBufferedText = () => {
+        if (!bufferedText) return;
+        const text = bufferedText;
+        bufferedText = '';
+        setMessages((messages) =>
+          updateMessage(messages, responseId, (message) => ({
+            ...message,
+            text: message.text + text,
+          })),
+        );
+      };
+
       try {
         await provider.stream(prompt, (delta) => {
-          setMessages((messages) =>
-            updateMessage(messages, responseId, (message) => ({
-              ...message,
-              text: message.text + delta,
-            })),
-          );
+          bufferedText += delta;
+          if (renderTimer) return;
+          renderTimer = setTimeout(() => {
+            renderTimer = undefined;
+            flushBufferedText();
+          }, STREAM_RENDER_INTERVAL_MS);
         });
+        if (renderTimer) clearTimeout(renderTimer);
+        flushBufferedText();
       } catch (error) {
+        if (renderTimer) clearTimeout(renderTimer);
+        bufferedText = '';
         const message = error instanceof Error ? error.message : String(error);
         setMessages((messages) =>
           updateMessage(messages, responseId, (response) => ({
