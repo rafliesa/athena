@@ -110,7 +110,10 @@ export function ChatScreen({
 
   return (
     <Box flexDirection="column" paddingX={2} paddingY={1} width="100%">
-      <ConversationView messages={messages} />
+      <ConversationView
+        messages={messages}
+        thinkingLabel={isStreaming ? `Thinking with ${provider.model}...` : undefined}
+      />
       <ChatControls
         activeMenu={activeMenu}
         prompt={prompt.value}
@@ -123,9 +126,7 @@ export function ChatScreen({
         onSystemPromptSave={(value) => void saveSystemPrompt(value)}
         onSystemPromptCancel={() => setActiveMenu(null)}
       />
-      {isBusy && (
-        <Spinner label={isLoggingOut ? 'Signing out...' : `Thinking with ${provider.model}...`} />
-      )}
+      {isLoggingOut && <Spinner label="Signing out..." />}
       <Footer provider={provider.name} model={provider.model} />
     </Box>
   );

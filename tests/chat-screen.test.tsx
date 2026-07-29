@@ -48,6 +48,35 @@ function createHarness(overrides?: {
 afterEach(cleanup);
 
 describe('ChatScreen', () => {
+  it('renders the thinking indicator inside the pending assistant bubble', async () => {
+    let finishStreaming: (() => void) | undefined;
+    const provider: Provider = {
+      name: 'api',
+      model: 'gpt-5.6-luna',
+      stream: vi.fn(
+        () =>
+          new Promise<void>((resolve) => {
+            finishStreaming = resolve;
+          }),
+      ),
+    };
+    const { view } = createHarness({ provider });
+
+    await sendInput(view, 'hello');
+    await sendInput(view, '\r');
+
+    await vi.waitFor(() => {
+      const frame = view.lastFrame() ?? '';
+      expect(frame).toContain('athena');
+      const thinkingIndex = frame.indexOf('Thinking with gpt-5.6-luna...');
+      expect(thinkingIndex).toBeGreaterThan(-1);
+      expect(frame.lastIndexOf('╭', thinkingIndex)).toBeGreaterThan(-1);
+      expect(frame.indexOf('╰', thinkingIndex)).toBeGreaterThan(thinkingIndex);
+    });
+
+    finishStreaming?.();
+  });
+
   it('routes a regular prompt to the provider and renders streamed output', async () => {
     const { view, provider } = createHarness();
 

@@ -1,8 +1,14 @@
 import React from 'react';
 import { Box, Text } from 'ink';
 import type { Message } from '../domain/messages.js';
+import { Spinner } from './Spinner.js';
 
-export function MessageView({ message }: { message: Message }) {
+type MessageViewProps = {
+  message: Message;
+  thinkingLabel?: string;
+};
+
+export function MessageView({ message, thinkingLabel }: MessageViewProps) {
   const isUser = message.role === 'user';
 
   return (
@@ -11,7 +17,7 @@ export function MessageView({ message }: { message: Message }) {
         {isUser ? 'you' : 'athena'}
       </Text>
       <Box borderStyle="round" borderColor={isUser ? 'yellow' : 'cyan'} paddingX={1}>
-        <Text>{message.text}</Text>
+        {thinkingLabel ? <Spinner label={thinkingLabel} /> : <Text>{message.text}</Text>}
       </Box>
     </Box>
   );
