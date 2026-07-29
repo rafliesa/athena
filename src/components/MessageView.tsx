@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Text } from 'ink';
 import type { Message } from '../domain/messages.js';
+import { Markdown } from './Markdown.js';
 import { Spinner } from './Spinner.js';
 
 type MessageViewProps = {
@@ -17,7 +18,7 @@ export function MessageView({ message, thinkingLabel }: MessageViewProps) {
         {isUser ? 'you' : 'athena'}
       </Text>
       <Box borderStyle="round" borderColor={isUser ? 'yellow' : 'cyan'} paddingX={1}>
-        {thinkingLabel ? <Spinner label={thinkingLabel} /> : <Text>{message.text}</Text>}
+        {thinkingLabel ? <Spinner label={thinkingLabel} /> : <Markdown>{message.text}</Markdown>}
       </Box>
     </Box>
   );
