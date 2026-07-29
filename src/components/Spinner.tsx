@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Text } from 'ink';
 
-const FRAMES = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+const FRAMES = ['···', '●··', '●●·', '●●●', '·●●', '··●'];
 
 export function Spinner({ label }: { label: string }) {
   const [frame, setFrame] = useState(0);
