@@ -18,6 +18,7 @@ describe('commands', () => {
   it('formats help from the command registry', () => {
     expect(formatCommandHelp()).toContain('/model — Select the active model');
     expect(formatCommandHelp()).toContain('/systemprompt — Edit the system prompt');
+    expect(formatCommandHelp()).toContain('/tools — Show available agent tools');
     expect(formatCommandHelp()).toContain('/logout — Sign out and return to setup');
   });
 });

@@ -1,6 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { CodexClient, NotificationHandler } from '../src/providers/codex/AppServerClient.js';
+import type {
+  CodexClient,
+  NotificationHandler,
+  ServerRequestHandler,
+} from '../src/providers/codex/AppServerClient.js';
 import { CodexProvider } from '../src/providers/codex/CodexProvider.js';
+import { toCodexDynamicTools } from '../src/tools/adapters/codex.js';
+import { toolRegistry } from '../src/tools/registry.js';
+import type { AgentTool, ToolRuntime } from '../src/tools/types.js';
 
 type Request = {
   method: string;
@@ -16,6 +23,7 @@ class FakeCodexClient implements CodexClient {
   turnStartError?: Error;
 
   private readonly notificationHandlers = new Map<string, Set<NotificationHandler>>();
+  private readonly serverRequestHandlers = new Map<string, ServerRequestHandler>();
   private readonly closeHandlers = new Set<(error: Error) => void>();
 
   async request<T>(method: string, params: Record<string, unknown>): Promise<T> {
@@ -36,6 +44,11 @@ class FakeCodexClient implements CodexClient {
     return () => handlers.delete(handler);
   }
 
+  onRequest(method: string, handler: ServerRequestHandler): () => void {
+    this.serverRequestHandlers.set(method, handler);
+    return () => this.serverRequestHandlers.delete(method);
+  }
+
   onClose(handler: (error: Error) => void): () => void {
     this.closeHandlers.add(handler);
     return () => this.closeHandlers.delete(handler);
@@ -49,8 +62,14 @@ class FakeCodexClient implements CodexClient {
     for (const handler of this.closeHandlers) handler(error);
   }
 
+  async requestFromServer(method: string, params: Record<string, unknown>): Promise<unknown> {
+    const handler = this.serverRequestHandlers.get(method);
+    if (!handler) throw new Error(`Missing server request handler: ${method}`);
+    return handler(params);
+  }
+
   listenerCount(): number {
-    let count = this.closeHandlers.size;
+    let count = this.closeHandlers.size + this.serverRequestHandlers.size;
     for (const handlers of this.notificationHandlers.values()) count += handlers.size;
     return count;
   }
@@ -86,6 +105,7 @@ describe('CodexProvider', () => {
           sandbox: 'read-only',
           approvalPolicy: 'never',
           ephemeral: true,
+          dynamicTools: toCodexDynamicTools(toolRegistry.list()),
         },
       },
       {
@@ -100,6 +120,58 @@ describe('CodexProvider', () => {
     expect(onDelta.mock.calls).toEqual([['Hello'], [' world']]);
     expect(client.listenerCount()).toBe(0);
     expect(client.dispose).toHaveBeenCalledOnce();
+  });
+
+  it('executes dynamic tool requests and returns their content to Codex', async () => {
+    const client = new FakeCodexClient();
+    const execute = vi.fn<ToolRuntime['execute']>(async () => ({
+      success: true,
+      output: '{"ok":true}',
+    }));
+    const tools: ToolRuntime = {
+      list: () => [
+        {
+          name: 'scan_directory',
+          title: 'Scan directory',
+          category: 'Filesystem',
+          access: 'read-only',
+          description: 'Scan files',
+          inputSchema: { type: 'object' },
+          execute: async () => undefined,
+        } satisfies AgentTool,
+      ],
+      execute,
+    };
+    let toolResponse: unknown;
+    client.onTurnStart = () => {
+      void client
+        .requestFromServer('item/tool/call', {
+          tool: 'scan_directory',
+          arguments: { path: '.', query: null },
+        })
+        .then((response) => {
+          toolResponse = response;
+          client.emit('turn/completed', { turn: { status: 'completed' } });
+        });
+    };
+
+    await new CodexProvider('gpt-5.6-luna', () => client, undefined, 'Be concise.', tools).stream(
+      'Find config files',
+      vi.fn(),
+    );
+
+    expect(execute).toHaveBeenCalledWith(
+      'scan_directory',
+      { path: '.', query: null },
+      { cwd: process.cwd() },
+    );
+    expect(toolResponse).toEqual({
+      contentItems: [{ type: 'inputText', text: '{"ok":true}' }],
+      success: true,
+    });
+    expect(client.requests[0]?.params).toMatchObject({
+      dynamicTools: toCodexDynamicTools(tools.list()),
+    });
   });
 
   it('propagates failed turns and disposes the client', async () => {

@@ -140,6 +140,22 @@ describe('ChatScreen', () => {
     expect(provider.stream).not.toHaveBeenCalled();
   });
 
+  it('renders the tool catalog without calling the provider', async () => {
+    const { view, provider } = createHarness();
+
+    await sendInput(view, '/tools');
+    await sendInput(view, '\r');
+
+    await vi.waitFor(() => expect(view.lastFrame()).toContain('includeHidden'));
+    await sendInput(view, '\u001B[5~');
+    await vi.waitFor(() => {
+      expect(view.lastFrame()).toContain('Available tools (1)');
+      expect(view.lastFrame()).toContain('scan_directory');
+      expect(view.lastFrame()).toContain('read-only');
+    });
+    expect(provider.stream).not.toHaveBeenCalled();
+  });
+
   it('persists a model selection before publishing the new config', async () => {
     const { view, dependencies, onConfigChange } = createHarness();
 

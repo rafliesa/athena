@@ -2,12 +2,14 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { createInterface, type Interface } from 'node:readline';
 
 type JsonRpcResponse = {
-  id?: number;
+  id?: JsonRpcId;
   method?: string;
   params?: Record<string, unknown>;
   result?: unknown;
   error?: { message?: string };
 };
+
+type JsonRpcId = string | number;
 
 type PendingRequest = {
   resolve: (result: unknown) => void;
@@ -15,11 +17,13 @@ type PendingRequest = {
 };
 
 export type NotificationHandler = (params: Record<string, unknown>) => void;
+export type ServerRequestHandler = (params: Record<string, unknown>) => unknown;
 
 export interface CodexClient {
   initialize(): Promise<void>;
   request<T>(method: string, params: Record<string, unknown>): Promise<T>;
   on(method: string, handler: NotificationHandler): () => void;
+  onRequest(method: string, handler: ServerRequestHandler): () => void;
   onClose(handler: (error: Error) => void): () => void;
   dispose(): void;
 }
@@ -30,8 +34,9 @@ export type AppServerProcessFactory = (cwd: string) => ChildProcessWithoutNullSt
 export class AppServerClient implements CodexClient {
   private readonly child: ChildProcessWithoutNullStreams;
   private readonly lines: Interface;
-  private readonly pending = new Map<number, PendingRequest>();
+  private readonly pending = new Map<JsonRpcId, PendingRequest>();
   private readonly notificationHandlers = new Map<string, Set<NotificationHandler>>();
+  private readonly serverRequestHandlers = new Map<string, ServerRequestHandler>();
   private readonly closeHandlers = new Set<(error: Error) => void>();
   private requestId = 0;
   private stderr = '';
@@ -60,6 +65,10 @@ export class AppServerClient implements CodexClient {
   async initialize(): Promise<void> {
     await this.request('initialize', {
       clientInfo: { name: 'athena', title: 'Athena', version: '1.0.0' },
+      capabilities: {
+        experimentalApi: true,
+        requestAttestation: false,
+      },
     });
     this.notify('initialized');
   }
@@ -96,6 +105,18 @@ export class AppServerClient implements CodexClient {
     return () => handlers.delete(handler);
   }
 
+  onRequest(method: string, handler: ServerRequestHandler): () => void {
+    if (this.serverRequestHandlers.has(method)) {
+      throw new Error(`A Codex server-request handler is already registered for ${method}.`);
+    }
+    this.serverRequestHandlers.set(method, handler);
+    return () => {
+      if (this.serverRequestHandlers.get(method) === handler) {
+        this.serverRequestHandlers.delete(method);
+      }
+    };
+  }
+
   onClose(handler: (error: Error) => void): () => void {
     this.closeHandlers.add(handler);
     return () => this.closeHandlers.delete(handler);
@@ -108,6 +129,7 @@ export class AppServerClient implements CodexClient {
     if (!this.terminated) this.child.kill();
     this.rejectAll(new Error('Codex app server was closed.'));
     this.notificationHandlers.clear();
+    this.serverRequestHandlers.clear();
     this.closeHandlers.clear();
   }
 
@@ -123,6 +145,11 @@ export class AppServerClient implements CodexClient {
     try {
       message = JSON.parse(line) as JsonRpcResponse;
     } catch {
+      return;
+    }
+
+    if (message.id !== undefined && message.method) {
+      this.handleServerRequest(message.id, message.method, message.params ?? {});
       return;
     }
 
@@ -142,6 +169,37 @@ export class AppServerClient implements CodexClient {
     }
   }
 
+  private handleServerRequest(
+    id: JsonRpcId,
+    method: string,
+    params: Record<string, unknown>,
+  ): void {
+    const handler = this.serverRequestHandlers.get(method);
+    if (!handler) {
+      this.writeServerResponse({
+        id,
+        error: { code: -32601, message: `No handler registered for ${method}.` },
+      });
+      return;
+    }
+
+    void Promise.resolve()
+      .then(() => handler(params))
+      .then(
+        (result) => this.writeServerResponse({ id, result }),
+        (error: unknown) =>
+          this.writeServerResponse({
+            id,
+            error: { code: -32000, message: toError(error).message },
+          }),
+      );
+  }
+
+  private writeServerResponse(message: Record<string, unknown>): void {
+    if (this.disposed || this.terminated) return;
+    this.write(message);
+  }
+
   private rejectAll(error: Error): void {
     for (const request of this.pending.values()) request.reject(error);
     this.pending.clear();
@@ -154,6 +212,7 @@ export class AppServerClient implements CodexClient {
     this.rejectAll(error);
     for (const handler of this.closeHandlers) handler(error);
     this.notificationHandlers.clear();
+    this.serverRequestHandlers.clear();
     this.closeHandlers.clear();
   }
 }

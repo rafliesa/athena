@@ -72,6 +72,19 @@ Model output is streamed into the terminal as it is generated. Use `/logout` to 
 local provider configuration and return to the setup screen. When using Codex authentication,
 `/logout` also signs out the Codex CLI session.
 
+## Agent Tools
+
+Athena exposes provider-neutral tools through a modular registry. The first tool,
+`scan_directory`, recursively scans a workspace directory and can search file or directory paths
+by a case-insensitive substring. It is read-only, stays inside the current workspace, does not
+follow symbolic links, and skips generated directories such as `.git`, `coverage`, `dist`, and
+`node_modules`.
+
+Use `/tools` inside Athena to see every enabled tool, its access level, description, and input
+parameters. Tool contracts, registry behavior, provider adapters, and domain implementations are
+kept separate so tools can be added without coupling them to the terminal UI or a specific model
+provider.
+
 ## Project Structure
 
 ```text
@@ -86,7 +99,7 @@ src/
 ├── domain/                         # Models, commands, messages, and core types
 ├── providers/
 │   ├── provider.ts                 # Provider contract
-│   ├── createProvider.ts           # Provider faOctory
+│   ├── createProvider.ts           # Provider factory
 │   ├── codex/
 │   │   ├── AppServerClient.ts      # Codex JSON-RPC transport
 │   │   └── CodexProvider.ts        # Codex streaming adapter
@@ -94,7 +107,19 @@ src/
 │       ├── OpenAIProvider.ts       # Responses API streaming adapter
 │       └── sse.ts                  # Incremental SSE decoder
 ├── hooks/                          # Prompt and authentication state hooks
-└── screens/                        # Thin authentication and chat orchestration
+├── screens/                        # Thin authentication and chat orchestration
+└── tools/
+    ├── types.ts                    # Provider-neutral tool contracts
+    ├── ToolRegistry.ts             # Discovery, execution, and result envelopes
+    ├── registry.ts                 # Enabled tool composition root
+    ├── formatToolHelp.ts           # Human-readable /tools output
+    ├── adapters/                   # OpenAI and Codex declaration adapters
+    └── filesystem/
+        └── scanDirectory/
+            ├── index.ts            # Tool definition
+            ├── input.ts            # Runtime argument validation
+            ├── pathSafety.ts       # Workspace containment checks
+            └── execute.ts          # Bounded directory traversal
 ```
 
 Protocol code, application state, persistence, and rendering are intentionally isolated so new
@@ -106,7 +131,7 @@ Planned areas of development include:
 
 - agent execution loop;
 - model and provider integrations;
-- tool calling for file and command operations;
+- additional tools for file and command operations;
 - sandboxing and execution timeouts;
 - context and session management;
 - test runner and evaluator;

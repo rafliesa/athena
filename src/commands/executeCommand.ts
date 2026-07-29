@@ -2,6 +2,8 @@ import { logoutFromCodex } from '../auth/codex.js';
 import { deleteConfig } from '../config/store.js';
 import { formatCommandHelp, type CommandName } from '../domain/commands.js';
 import type { ProviderName } from '../domain/config.js';
+import { formatToolHelp } from '../tools/formatToolHelp.js';
+import { toolRegistry } from '../tools/registry.js';
 
 export type CommandContext = {
   provider: ProviderName;
@@ -34,6 +36,7 @@ const HANDLERS: Record<CommandName, CommandHandler> = {
   '/clear': ({ clearMessages }) => clearMessages(),
   '/model': ({ openModelMenu }) => openModelMenu(),
   '/systemprompt': ({ openSystemPromptEditor }) => openSystemPromptEditor(),
+  '/tools': ({ addAssistantMessage }) => addAssistantMessage(formatToolHelp(toolRegistry)),
   '/status': ({ addAssistantMessage, provider, model }) =>
     addAssistantMessage(`Provider: ${provider}\nModel: ${model}\nStatus: ready`),
   '/help': ({ addAssistantMessage }) => addAssistantMessage(formatCommandHelp()),

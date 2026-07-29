@@ -1,5 +1,8 @@
 import { DEFAULT_SYSTEM_PROMPT } from '../../domain/config.js';
 import type { ModelId } from '../../domain/models.js';
+import { toCodexDynamicTools } from '../../tools/adapters/codex.js';
+import { toolRegistry } from '../../tools/registry.js';
+import type { ToolRuntime } from '../../tools/types.js';
 import type { Provider, TextDeltaHandler } from '../provider.js';
 import { AppServerClient, type CodexClientFactory } from './AppServerClient.js';
 
@@ -25,6 +28,7 @@ export class CodexProvider implements Provider {
     private readonly createClient: CodexClientFactory = (cwd) => new AppServerClient(cwd),
     private readonly timeoutMs = DEFAULT_TIMEOUT_MS,
     private readonly systemPrompt = DEFAULT_SYSTEM_PROMPT,
+    private readonly tools: ToolRuntime = toolRegistry,
   ) {}
 
   async stream(prompt: string, onDelta: TextDeltaHandler): Promise<void> {
@@ -32,9 +36,20 @@ export class CodexProvider implements Provider {
     const streamState = { receivedText: false };
     let cleanupCompletion: () => void = () => undefined;
     let cancelTimeout: () => void = () => undefined;
+    let removeToolHandler: () => void = () => undefined;
 
     try {
       const operation = (async () => {
+        removeToolHandler = client.onRequest('item/tool/call', async (params) => {
+          const tool = typeof params.tool === 'string' ? params.tool : '';
+          const result = await this.tools.execute(tool, params.arguments, {
+            cwd: process.cwd(),
+          });
+          return {
+            contentItems: [{ type: 'inputText', text: result.output }],
+            success: result.success,
+          };
+        });
         await client.initialize();
         const { thread } = await client.request<ThreadStartResult>('thread/start', {
           model: this.model,
@@ -43,6 +58,7 @@ export class CodexProvider implements Provider {
           sandbox: 'read-only',
           approvalPolicy: 'never',
           ephemeral: true,
+          dynamicTools: toCodexDynamicTools(this.tools.list()),
         });
         if (!thread?.id) {
           throw new Error('Codex did not return a thread ID.');
@@ -106,6 +122,7 @@ export class CodexProvider implements Provider {
     } finally {
       cancelTimeout();
       cleanupCompletion();
+      removeToolHandler();
       client.dispose();
     }
   }

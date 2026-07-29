@@ -64,6 +64,10 @@ describe('AppServerClient', () => {
             title: 'Athena',
             version: '1.0.0',
           },
+          capabilities: {
+            experimentalApi: true,
+            requestAttestation: false,
+          },
         },
       },
     ]);
@@ -109,6 +113,122 @@ describe('AppServerClient', () => {
 
     expect(handler).toHaveBeenCalledOnce();
     expect(handler).toHaveBeenCalledWith({ status: 'ok' });
+  });
+
+  it('handles server-initiated requests and writes their result', async () => {
+    const { client, process } = createClient();
+    const handler = vi.fn(async (params: Record<string, unknown>) => ({
+      contentItems: [{ type: 'inputText', text: JSON.stringify(params) }],
+      success: true,
+    }));
+    client.onRequest('item/tool/call', handler);
+
+    process.send({
+      id: 'tool-call-41',
+      method: 'item/tool/call',
+      params: {
+        tool: 'scan_directory',
+        arguments: { path: 'src' },
+      },
+    });
+
+    await vi.waitFor(() => {
+      expect(process.messages().at(-1)).toEqual({
+        id: 'tool-call-41',
+        result: {
+          contentItems: [
+            {
+              type: 'inputText',
+              text: JSON.stringify({
+                tool: 'scan_directory',
+                arguments: { path: 'src' },
+              }),
+            },
+          ],
+          success: true,
+        },
+      });
+    });
+    expect(handler).toHaveBeenCalledWith({
+      tool: 'scan_directory',
+      arguments: { path: 'src' },
+    });
+  });
+
+  it('returns a method-not-found error for unhandled server requests', async () => {
+    const { process } = createClient();
+
+    process.send({
+      id: 42,
+      method: 'item/unknown/call',
+      params: { value: true },
+    });
+
+    await vi.waitFor(() => {
+      expect(process.messages().at(-1)).toEqual({
+        id: 42,
+        error: {
+          code: -32601,
+          message: 'No handler registered for item/unknown/call.',
+        },
+      });
+    });
+  });
+
+  it('returns an internal error when a server-request handler fails', async () => {
+    const { client, process } = createClient();
+    client.onRequest('item/tool/call', async () => {
+      throw new Error('tool execution failed');
+    });
+
+    process.send({
+      id: 43,
+      method: 'item/tool/call',
+      params: {},
+    });
+
+    await vi.waitFor(() => {
+      expect(process.messages().at(-1)).toEqual({
+        id: 43,
+        error: {
+          code: -32000,
+          message: 'tool execution failed',
+        },
+      });
+    });
+  });
+
+  it('stops handling server requests after their handler is removed', async () => {
+    const { client, process } = createClient();
+    const handler = vi.fn(() => ({ success: true }));
+    const remove = client.onRequest('item/tool/call', handler);
+
+    remove();
+    process.send({
+      id: 44,
+      method: 'item/tool/call',
+      params: {},
+    });
+
+    await vi.waitFor(() => {
+      expect(process.messages().at(-1)).toEqual({
+        id: 44,
+        error: {
+          code: -32601,
+          message: 'No handler registered for item/tool/call.',
+        },
+      });
+    });
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  it('rejects duplicate server-request handlers for the same method', () => {
+    const { client } = createClient();
+    client.onRequest('item/tool/call', () => ({ success: true }));
+
+    expect(() => client.onRequest('item/tool/call', () => ({ success: true }))).toThrow(
+      'A Codex server-request handler is already registered for item/tool/call.',
+    );
   });
 
   it('rejects all pending requests and reports an unexpected close once', async () => {

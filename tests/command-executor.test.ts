@@ -30,6 +30,7 @@ describe('command executor', () => {
     await execute('/clear');
     await execute('/model');
     await execute('/systemprompt');
+    await execute('/tools');
     await execute('/status');
     await execute('/help');
     await execute('/exit');
@@ -37,7 +38,10 @@ describe('command executor', () => {
     expect(context.clearMessages).toHaveBeenCalledOnce();
     expect(context.openModelMenu).toHaveBeenCalledOnce();
     expect(context.openSystemPromptEditor).toHaveBeenCalledOnce();
-    expect(context.addAssistantMessage).toHaveBeenCalledTimes(2);
+    expect(context.addAssistantMessage).toHaveBeenCalledTimes(3);
+    expect(context.addAssistantMessage).toHaveBeenCalledWith(
+      expect.stringContaining('scan_directory — Scan directory'),
+    );
     expect(context.exit).toHaveBeenCalledOnce();
   });
 
