@@ -66,19 +66,43 @@ Use `/model` inside the application to switch between Luna, Terra, and Sol.
 
 Provider settings are stored in `~/.config/athena/config.json`. API keys are stored locally in that
 file with mode `0600`; never commit or share this file. Codex credentials remain managed by Codex
-and are not read or stored by Athena.
+and are not read or stored by Athena. Agent permissions are stored in the same Athena config.
 
 Model output is streamed into the terminal as it is generated. Use `/logout` to remove Athena's
-local provider configuration and return to the setup screen. When using Codex authentication,
-`/logout` also signs out the Codex CLI session.
+local provider configuration and return to the setup screen. This does not sign out the shared
+Codex CLI session, so other Codex clients remain authenticated.
 
 ## Agent Tools
 
-Athena exposes provider-neutral tools through a modular registry. The first tool,
-`scan_directory`, recursively scans a workspace directory and can search file or directory paths
-by a case-insensitive substring. It is read-only, stays inside the current workspace, does not
-follow symbolic links, and skips generated directories such as `.git`, `coverage`, `dist`, and
-`node_modules`.
+Athena exposes provider-neutral coding tools through a modular registry:
+
+- `scan_directory` — inspect directory entries recursively;
+- `find_files` — find files by a literal name substring;
+- `search_text` — search UTF-8 file contents with line and column locations;
+- `read_file` — read a bounded line range;
+- `write_file` — create a file or explicitly replace all of its contents;
+- `edit_file` — replace exact text only when the expected match count is correct;
+- `run_command` — run one non-interactive executable with bounded output and a timeout.
+
+Use `/permissions` to configure the two mutating capability groups:
+
+- **Edit files** controls `write_file` and `edit_file`;
+- **Run terminal** controls `run_command`.
+
+Read-only inspection tools are always available. File editing is enabled by default and remains
+restricted to the current workspace. Terminal execution is disabled by default because child
+processes inherit Athena's host permissions. Saving the permission menu persists the selection and
+rebuilds the provider with only the allowed tools; a blocked tool is not advertised to the model
+and cannot be executed through Athena's tool runtime.
+
+Filesystem tools stay inside the current workspace, reject path and symlink escapes, and skip
+generated directories such as `.git`, `coverage`, `dist`, and `node_modules` during traversal.
+Writes reject symbolic-link targets and use atomic replacement where applicable.
+
+`run_command` validates that its starting directory is inside the workspace, but it is trusted
+local execution rather than an OS sandbox. A child process inherits Athena's host permissions and
+may access other filesystem locations or network resources. Run Athena only with repositories and
+models you trust until process sandboxing and approvals are implemented.
 
 Use `/tools` inside Athena to see every enabled tool, its access level, description, and input
 parameters. Tool contracts, registry behavior, provider adapters, and domain implementations are
@@ -96,7 +120,7 @@ src/
 ├── commands/                       # Command registry and command handlers
 ├── components/                     # Reusable terminal UI components
 ├── config/                         # Validated local configuration
-├── domain/                         # Models, commands, messages, and core types
+├── domain/                         # Models, commands, permissions, messages, and core types
 ├── providers/
 │   ├── provider.ts                 # Provider contract
 │   ├── createProvider.ts           # Provider factory
@@ -114,12 +138,17 @@ src/
     ├── registry.ts                 # Enabled tool composition root
     ├── formatToolHelp.ts           # Human-readable /tools output
     ├── adapters/                   # OpenAI and Codex declaration adapters
-    └── filesystem/
-        └── scanDirectory/
-            ├── index.ts            # Tool definition
-            ├── input.ts            # Runtime argument validation
-            ├── pathSafety.ts       # Workspace containment checks
-            └── execute.ts          # Bounded directory traversal
+    ├── shared/                     # Provider-neutral input validation
+    ├── filesystem/
+    │   ├── shared/                 # Path, traversal, text, and atomic-write helpers
+    │   ├── scanDirectory/          # Directory inspection
+    │   ├── findFiles/              # File-name search
+    │   ├── searchText/             # File-content search
+    │   ├── readFile/               # Bounded text reads
+    │   ├── writeFile/              # Create and complete replacement
+    │   └── editFile/               # Guarded targeted replacement
+    └── terminal/
+        └── runCommand/             # Bounded process execution
 ```
 
 Protocol code, application state, persistence, and rendering are intentionally isolated so new
@@ -131,8 +160,7 @@ Planned areas of development include:
 
 - agent execution loop;
 - model and provider integrations;
-- additional tools for file and command operations;
-- sandboxing and execution timeouts;
+- OS-level process sandboxing and approval policies;
 - context and session management;
 - test runner and evaluator;
 - unit and integration tests;
