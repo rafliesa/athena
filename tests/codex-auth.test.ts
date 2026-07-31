@@ -2,7 +2,7 @@ import { EventEmitter } from 'node:events';
 import { PassThrough } from 'node:stream';
 import { spawn } from 'node:child_process';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { isCodexAuthenticated, loginToCodex, logoutFromCodex } from '../src/auth/codex.js';
+import { isCodexAuthenticated, loginToCodex } from '../src/auth/codex.js';
 
 vi.mock('node:child_process', () => ({
   spawn: vi.fn(),
@@ -64,15 +64,5 @@ describe('Codex authentication', () => {
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     expect(onOutput.mock.calls).toEqual([['Open this URL'], ['Waiting for confirmation']]);
-  });
-
-  it('runs logout and reports a non-zero exit code', async () => {
-    const child = new FakeChildProcess();
-    spawnMock.mockReturnValue(child as never);
-
-    const logout = logoutFromCodex();
-    child.emit('close', 7);
-
-    await expect(logout).rejects.toThrow('codex logout exited with code 7.');
   });
 });

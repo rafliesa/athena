@@ -8,6 +8,10 @@ const CONFIG: AthenaConfig = {
   provider: 'api',
   model: 'gpt-5.6-luna',
   apiKey: 'sk-test',
+  permissions: {
+    canEditFiles: true,
+    canRunCommands: true,
+  },
 };
 
 async function sendInput(view: ReturnType<typeof render>, input: string): Promise<void> {
@@ -146,13 +150,19 @@ describe('ChatScreen', () => {
     await sendInput(view, '/tools');
     await sendInput(view, '\r');
 
-    await vi.waitFor(() => expect(view.lastFrame()).toContain('includeHidden'));
-    await sendInput(view, '\u001B[5~');
     await vi.waitFor(() => {
-      expect(view.lastFrame()).toContain('Available tools (1)');
-      expect(view.lastFrame()).toContain('scan_directory');
-      expect(view.lastFrame()).toContain('read-only');
+      expect(view.lastFrame()).toContain('timeoutMs');
+      expect(view.lastFrame()).toContain('trusted local');
     });
+    for (let page = 0; page < 10; page++) {
+      await sendInput(view, '\u001B[5~');
+    }
+    await vi.waitFor(() => {
+      expect(view.lastFrame()).toContain('Available tools (7)');
+      expect(view.lastFrame()).toContain('scan_directory');
+    });
+    await sendInput(view, '\u001B[6~');
+    await vi.waitFor(() => expect(view.lastFrame()).toContain('read-only'));
     expect(provider.stream).not.toHaveBeenCalled();
   });
 
@@ -194,6 +204,31 @@ describe('ChatScreen', () => {
     await vi.waitFor(() => expect(onConfigChange).toHaveBeenCalledWith(expectedConfig));
     expect(dependencies.saveConfig).toHaveBeenCalledWith(expectedConfig);
     expect(view.lastFrame()).toContain('System prompt updated.');
+  });
+
+  it('opens the permission menu and persists independent tool permissions', async () => {
+    const { view, dependencies, onConfigChange } = createHarness();
+
+    await sendInput(view, '/permissions');
+    await sendInput(view, '\r');
+    await vi.waitFor(() => expect(view.lastFrame()).toContain('Agent permissions'));
+    expect(view.lastFrame()).toContain('[x] Edit files');
+    expect(view.lastFrame()).toContain('[x] Run terminal');
+
+    await sendInput(view, '\u001B[B');
+    await sendInput(view, ' ');
+    await sendInput(view, '\r');
+
+    const expectedConfig: AthenaConfig = {
+      ...CONFIG,
+      permissions: {
+        canEditFiles: true,
+        canRunCommands: false,
+      },
+    };
+    await vi.waitFor(() => expect(onConfigChange).toHaveBeenCalledWith(expectedConfig));
+    expect(dependencies.saveConfig).toHaveBeenCalledWith(expectedConfig);
+    expect(view.lastFrame()).toContain('Run terminal: blocked');
   });
 
   it('keeps the model menu open and reports persistence failures', async () => {

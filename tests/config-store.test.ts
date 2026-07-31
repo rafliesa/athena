@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createConfigStore } from '../src/config/store.js';
 import { DEFAULT_SYSTEM_PROMPT } from '../src/domain/config.js';
+import { DEFAULT_AGENT_PERMISSIONS } from '../src/domain/permissions.js';
 
 const temporaryDirectories: string[] = [];
 
@@ -61,6 +62,7 @@ describe('config store', () => {
     await expect(store.load()).resolves.toEqual({
       ...config,
       systemPrompt: DEFAULT_SYSTEM_PROMPT,
+      permissions: DEFAULT_AGENT_PERMISSIONS,
     });
   });
 

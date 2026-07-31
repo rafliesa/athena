@@ -1,24 +1,25 @@
-import { logoutFromCodex } from '../auth/codex.js';
 import { deleteConfig } from '../config/store.js';
 import { formatCommandHelp, type CommandName } from '../domain/commands.js';
 import type { ProviderName } from '../domain/config.js';
+import { formatAgentPermissions, type AgentPermissions } from '../domain/permissions.js';
 import { formatToolHelp } from '../tools/formatToolHelp.js';
-import { toolRegistry } from '../tools/registry.js';
+import { createPermissionedToolRegistry } from '../tools/registry.js';
 
 export type CommandContext = {
   provider: ProviderName;
   model: string;
+  permissions: AgentPermissions;
   clearMessages: () => void;
   addAssistantMessage: (message: string) => void;
   openModelMenu: () => void;
   openSystemPromptEditor: () => void;
+  openPermissionMenu: () => void;
   setLoggingOut: (value: boolean) => void;
   onLogout: () => void;
   exit: () => void;
 };
 
 export type CommandDependencies = {
-  logoutFromCodex: () => Promise<void>;
   deleteConfig: () => Promise<void>;
 };
 
@@ -28,7 +29,6 @@ type CommandHandler = (
 ) => void | Promise<void>;
 
 const DEFAULT_DEPENDENCIES: CommandDependencies = {
-  logoutFromCodex,
   deleteConfig,
 };
 
@@ -36,9 +36,13 @@ const HANDLERS: Record<CommandName, CommandHandler> = {
   '/clear': ({ clearMessages }) => clearMessages(),
   '/model': ({ openModelMenu }) => openModelMenu(),
   '/systemprompt': ({ openSystemPromptEditor }) => openSystemPromptEditor(),
-  '/tools': ({ addAssistantMessage }) => addAssistantMessage(formatToolHelp(toolRegistry)),
-  '/status': ({ addAssistantMessage, provider, model }) =>
-    addAssistantMessage(`Provider: ${provider}\nModel: ${model}\nStatus: ready`),
+  '/permissions': ({ openPermissionMenu }) => openPermissionMenu(),
+  '/tools': ({ addAssistantMessage, permissions }) =>
+    addAssistantMessage(formatToolHelp(createPermissionedToolRegistry(permissions))),
+  '/status': ({ addAssistantMessage, provider, model, permissions }) =>
+    addAssistantMessage(
+      `Provider: ${provider}\nModel: ${model}\nStatus: ready\n\nPermissions:\n${formatAgentPermissions(permissions)}`,
+    ),
   '/help': ({ addAssistantMessage }) => addAssistantMessage(formatCommandHelp()),
   '/logout': logout,
   '/exit': ({ exit }) => exit(),
@@ -56,7 +60,6 @@ export function createCommandExecutor(
 async function logout(context: CommandContext, dependencies: CommandDependencies): Promise<void> {
   context.setLoggingOut(true);
   try {
-    if (context.provider === 'codex') await dependencies.logoutFromCodex();
     await dependencies.deleteConfig();
     context.onLogout();
   } catch (error) {

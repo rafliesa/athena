@@ -5,6 +5,7 @@ import {
   DEFAULT_SYSTEM_PROMPT,
   parseConfig,
 } from '../src/domain/config.js';
+import { DEFAULT_AGENT_PERMISSIONS } from '../src/domain/permissions.js';
 
 describe('config', () => {
   it('creates configs with the lowest-cost default model', () => {
@@ -13,11 +14,13 @@ describe('config', () => {
       model: 'gpt-5.6-luna',
       apiKey: 'sk-test',
       systemPrompt: DEFAULT_SYSTEM_PROMPT,
+      permissions: DEFAULT_AGENT_PERMISSIONS,
     });
     expect(createCodexConfig()).toEqual({
       provider: 'codex',
       model: 'gpt-5.6-luna',
       systemPrompt: DEFAULT_SYSTEM_PROMPT,
+      permissions: DEFAULT_AGENT_PERMISSIONS,
     });
   });
 
@@ -38,6 +41,7 @@ describe('config', () => {
       provider: 'codex',
       model: 'gpt-5.6-terra',
       systemPrompt: DEFAULT_SYSTEM_PROMPT,
+      permissions: DEFAULT_AGENT_PERMISSIONS,
     });
   });
 
@@ -52,6 +56,35 @@ describe('config', () => {
       provider: 'codex',
       model: 'gpt-5.6-terra',
       systemPrompt: 'Be concise.',
+      permissions: DEFAULT_AGENT_PERMISSIONS,
     });
+  });
+
+  it('preserves valid permissions and rejects malformed permission values', () => {
+    expect(
+      parseConfig({
+        provider: 'codex',
+        model: 'gpt-5.6-terra',
+        permissions: {
+          canEditFiles: false,
+          canRunCommands: true,
+        },
+      }),
+    ).toMatchObject({
+      permissions: {
+        canEditFiles: false,
+        canRunCommands: true,
+      },
+    });
+    expect(
+      parseConfig({
+        provider: 'codex',
+        model: 'gpt-5.6-terra',
+        permissions: {
+          canEditFiles: 'yes',
+          canRunCommands: true,
+        },
+      }),
+    ).toBeNull();
   });
 });

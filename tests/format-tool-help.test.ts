@@ -24,7 +24,14 @@ describe('formatToolHelp', () => {
           inputSchema: {
             properties: {
               query: { type: ['string', 'null'], description: 'Text to match.' },
-              limit: { type: 'integer', minimum: 1, maximum: 10, default: 5 },
+              limit: {
+                type: 'integer',
+                minimum: 1,
+                maximum: 10,
+                maxLength: 20,
+                maxItems: 5,
+                default: 5,
+              },
               unusual: { description: 42 },
             },
             required: ['query'],
@@ -56,7 +63,7 @@ Find matching paths.
 **Parameters**
 
 - \`query\` (string | null, required) — Text to match.
-- \`limit\` (integer, optional, min 1, max 10, default 5)
+- \`limit\` (integer, optional, min 1, max 10, max length 20, max items 5, default 5)
 - \`unusual\` (unknown, optional)
 
 ### status — Status

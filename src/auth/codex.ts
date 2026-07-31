@@ -15,10 +15,6 @@ export async function loginToCodex(onOutput: OutputHandler): Promise<void> {
   await runCodex(['login', '--device-auth'], onOutput);
 }
 
-export async function logoutFromCodex(): Promise<void> {
-  await runCodex(['logout']);
-}
-
 function runCodex(args: string[], onOutput?: OutputHandler): Promise<void> {
   return new Promise((resolve, reject) => {
     const child = spawn('codex', args, {

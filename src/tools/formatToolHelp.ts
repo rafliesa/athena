@@ -47,6 +47,10 @@ function formatConstraints(details: Record<string, unknown>): string[] {
   const constraints: string[] = [];
   if (typeof details.minimum === 'number') constraints.push(`min ${details.minimum}`);
   if (typeof details.maximum === 'number') constraints.push(`max ${details.maximum}`);
+  if (typeof details.maxLength === 'number') {
+    constraints.push(`max length ${details.maxLength}`);
+  }
+  if (typeof details.maxItems === 'number') constraints.push(`max items ${details.maxItems}`);
   if (details.default !== undefined) constraints.push(`default ${JSON.stringify(details.default)}`);
   return constraints;
 }

@@ -3,9 +3,10 @@ export const COMMANDS = [
   { name: '/clear', description: 'Clear the conversation' },
   { name: '/model', description: 'Select the active model' },
   { name: '/systemprompt', description: 'Edit the system prompt' },
+  { name: '/permissions', description: 'Configure agent permissions' },
   { name: '/tools', description: 'Show available agent tools' },
   { name: '/status', description: 'Show harness status' },
-  { name: '/logout', description: 'Sign out and return to setup' },
+  { name: '/logout', description: 'Forget Athena config and return to setup' },
   { name: '/exit', description: 'Exit Athena' },
 ] as const;
 

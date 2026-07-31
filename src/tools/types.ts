@@ -1,4 +1,4 @@
-export type ToolAccess = 'read-only';
+export type ToolAccess = 'read-only' | 'workspace-write' | 'process-execution';
 
 export type ToolExecutionContext = {
   cwd: string;

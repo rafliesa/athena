@@ -6,6 +6,11 @@ import { createCommandExecutor } from '../commands/executeCommand.js';
 import { isCommandName } from '../domain/commands.js';
 import { DEFAULT_SYSTEM_PROMPT, type AthenaConfig } from '../domain/config.js';
 import type { ModelId } from '../domain/models.js';
+import {
+  formatAgentPermissions,
+  resolveAgentPermissions,
+  type AgentPermissions,
+} from '../domain/permissions.js';
 import { ChatControls } from '../components/ChatControls.js';
 import { ConversationView } from '../components/ConversationView.js';
 import { Footer } from '../components/Footer.js';
@@ -41,9 +46,15 @@ export function ChatScreen({
   const { exit } = useApp();
   const terminalRows = useTerminalRows();
   const provider = useMemo(() => dependencies.createProvider(config), [config, dependencies]);
+  const permissions = useMemo(
+    () => resolveAgentPermissions(config.permissions),
+    [config.permissions],
+  );
   const { messages, isStreaming, addAssistantMessage, clearMessages, sendMessage } =
     useConversation(provider);
-  const [activeMenu, setActiveMenu] = useState<'model' | 'systemPrompt' | null>(null);
+  const [activeMenu, setActiveMenu] = useState<'model' | 'systemPrompt' | 'permissions' | null>(
+    null,
+  );
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const isBusy = isStreaming || isLoggingOut;
 
@@ -52,15 +63,25 @@ export function ChatScreen({
       createCommandExecutor({
         provider: provider.name,
         model: provider.model,
+        permissions,
         clearMessages,
         addAssistantMessage,
         openModelMenu: () => setActiveMenu('model'),
         openSystemPromptEditor: () => setActiveMenu('systemPrompt'),
+        openPermissionMenu: () => setActiveMenu('permissions'),
         setLoggingOut: setIsLoggingOut,
         onLogout,
         exit,
       }),
-    [addAssistantMessage, clearMessages, exit, onLogout, provider.model, provider.name],
+    [
+      addAssistantMessage,
+      clearMessages,
+      exit,
+      onLogout,
+      permissions,
+      provider.model,
+      provider.name,
+    ],
   );
 
   const handleSubmit = useCallback(
@@ -110,6 +131,27 @@ export function ChatScreen({
     [addAssistantMessage, config, dependencies, onConfigChange],
   );
 
+  const savePermissions = useCallback(
+    async (nextPermissions: AgentPermissions) => {
+      try {
+        const nextConfig: AthenaConfig = {
+          ...config,
+          permissions: nextPermissions,
+        };
+        await dependencies.saveConfig(nextConfig);
+        onConfigChange(nextConfig);
+        setActiveMenu(null);
+        addAssistantMessage(
+          `Agent permissions updated.\n\n${formatAgentPermissions(nextPermissions)}`,
+        );
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        addAssistantMessage(`Failed to update permissions: ${message}`);
+      }
+    },
+    [addAssistantMessage, config, dependencies, onConfigChange],
+  );
+
   return (
     <Box
       flexDirection="column"
@@ -128,6 +170,7 @@ export function ChatScreen({
         activeMenu={activeMenu}
         prompt={prompt.value}
         systemPrompt={config.systemPrompt ?? DEFAULT_SYSTEM_PROMPT}
+        permissions={permissions}
         suggestions={prompt.suggestions}
         selectedIndex={prompt.selectedIndex}
         currentModel={config.model}
@@ -135,8 +178,10 @@ export function ChatScreen({
         onModelCancel={() => setActiveMenu(null)}
         onSystemPromptSave={(value) => void saveSystemPrompt(value)}
         onSystemPromptCancel={() => setActiveMenu(null)}
+        onPermissionsSave={(value) => void savePermissions(value)}
+        onPermissionsCancel={() => setActiveMenu(null)}
       />
-      {isLoggingOut && <Spinner label="Signing out..." />}
+      {isLoggingOut && <Spinner label="Clearing Athena config..." />}
       <Footer provider={provider.name} model={provider.model} />
     </Box>
   );

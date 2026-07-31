@@ -2,7 +2,7 @@ import { readdir } from 'node:fs/promises';
 import { relative, resolve } from 'node:path';
 import type { ToolExecutionContext } from '../../types.js';
 import type { ScanDirectoryInput } from './input.js';
-import { resolveWorkspaceDirectory, toPortablePath } from './pathSafety.js';
+import { resolveWorkspaceDirectory, toPortablePath } from '../shared/pathSafety.js';
 
 const GENERATED_DIRECTORIES = new Set(['.git', 'coverage', 'dist', 'node_modules']);
 

@@ -19,6 +19,7 @@ type TurnCompletedParams = {
 
 const EMPTY_RESPONSE = 'Codex returned an empty response.';
 const DEFAULT_TIMEOUT_MS = 120_000;
+type CodexSandbox = 'read-only' | 'workspace-write';
 
 export class CodexProvider implements Provider {
   readonly name = 'codex';
@@ -29,6 +30,7 @@ export class CodexProvider implements Provider {
     private readonly timeoutMs = DEFAULT_TIMEOUT_MS,
     private readonly systemPrompt = DEFAULT_SYSTEM_PROMPT,
     private readonly tools: ToolRuntime = toolRegistry,
+    private readonly sandbox: CodexSandbox = 'workspace-write',
   ) {}
 
   async stream(prompt: string, onDelta: TextDeltaHandler): Promise<void> {
@@ -55,9 +57,14 @@ export class CodexProvider implements Provider {
           model: this.model,
           developerInstructions: this.systemPrompt,
           cwd: process.cwd(),
-          sandbox: 'read-only',
+          sandbox: this.sandbox,
           approvalPolicy: 'never',
           ephemeral: true,
+          config: {
+            features: {
+              shell_tool: false,
+            },
+          },
           dynamicTools: toCodexDynamicTools(this.tools.list()),
         });
         if (!thread?.id) {

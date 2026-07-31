@@ -102,9 +102,14 @@ describe('CodexProvider', () => {
           model: 'gpt-5.6-luna',
           developerInstructions: 'Be concise.',
           cwd: process.cwd(),
-          sandbox: 'read-only',
+          sandbox: 'workspace-write',
           approvalPolicy: 'never',
           ephemeral: true,
+          config: {
+            features: {
+              shell_tool: false,
+            },
+          },
           dynamicTools: toCodexDynamicTools(toolRegistry.list()),
         },
       },
@@ -171,6 +176,30 @@ describe('CodexProvider', () => {
     });
     expect(client.requests[0]?.params).toMatchObject({
       dynamicTools: toCodexDynamicTools(tools.list()),
+    });
+  });
+
+  it('applies a read-only sandbox when mutating Codex file tools are disabled', async () => {
+    const client = new FakeCodexClient();
+    client.onTurnStart = () => {
+      client.emit('item/agentMessage/delta', { delta: 'Read only.' });
+      client.emit('turn/completed', { turn: { status: 'completed' } });
+    };
+
+    await new CodexProvider(
+      'gpt-5.6-luna',
+      () => client,
+      undefined,
+      'Be concise.',
+      toolRegistry,
+      'read-only',
+    ).stream('Inspect this repository.', vi.fn());
+
+    expect(client.requests[0]?.params.sandbox).toBe('read-only');
+    expect(client.requests[0]?.params.config).toEqual({
+      features: {
+        shell_tool: false,
+      },
     });
   });
 

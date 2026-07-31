@@ -50,7 +50,7 @@ describe('usePromptInput', () => {
 
     await sendInput(view, '/');
     await sendInput(view, '\u001B[A');
-    expect(view.lastFrame()).toContain('/|7|');
+    expect(view.lastFrame()).toContain('/|8|');
 
     await sendInput(view, '\t');
     expect(view.lastFrame()).toBe('/exit|0|/exit');
